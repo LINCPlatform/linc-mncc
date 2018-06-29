@@ -1,1 +1,1 @@
-# linc-mncc
+# LINC Masternode Control Center
