@@ -519,7 +519,7 @@ function process_options() {
             ;;
         15)
             # self-update
-            sudo cat > /tmp/linc-mncc-update.sh <<-EOF
+            cat > /tmp/linc-mncc-update.sh <<-EOF
 #!/bin/bash
 wget ${SELF_UPDATE_URL} -O /tmp/linc-mncc.sh || rm -f /tmp/linc-mncc.sh
 if [ ! -f /tmp/linc-mncc.sh ]; then
@@ -641,7 +641,7 @@ function install_daemon() {
                 output $(error "Compiled binaries launch failed. Trying to compile from source code...")
                 compile
             else
-                cp * /usr/local/bin/ &>> ${SCRIPT_LOGFILE}
+                sudo cp * /usr/local/bin/ &>> ${SCRIPT_LOGFILE}
                 # if it's not available after installation, there's something wrong
                 if [ ! -f ${MN_DAEMON} ]; then
                     output $(error "Installation failed! Trying to complile from source code...")
@@ -740,7 +740,7 @@ function create_systemd_config() {
     MN_CONF_DIR="${MN_CONF_BASEDIR}-mn${1}"
     SERVICE_FILE="${SYSTEMD_CONF}/linc-mn${1}.service"
 
-    sudo cat > ${SERVICE_FILE} <<-EOF
+    sudo bash -c "cat > ${SERVICE_FILE} <<-EOF
 [Unit]
 Description=LINC masternode daemon
 After=network.target
@@ -763,7 +763,7 @@ StartLimitBurst=15
 
 [Install]
 WantedBy=multi-user.target
-EOF
+EOF"
     if [ -f /bin/systemctl ]; then sudo /bin/systemctl daemon-reload; fi
 }
 
@@ -789,23 +789,28 @@ function create_config() {
     MN_RPCUSER=$(date +%s | sha256sum | base64 | head -c 10 ; echo)
     MN_RPCPASS=`cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1`
 
-    sudo printf "%s\n%s\n" \
-        "listen=1" \
-        "server=1" \
-        "daemon=1" \
-        "masternode=1" \
-        "masternodeprivkey=${MN_PKEY}" \
-        "bind=${EXTERNAL_IP}" "externalip=${EXTERNAL_IP}" \
-        "rpcbind=127.0.0.${1}" "rpcconnect=127.0.0.${1}" "rpcallowip=127.0.0.1" \
-        "rpcuser=${MN_RPCUSER}" "rpcpassword=${MN_RPCPASS}" \
-        "maxconnections=256" \
-        "addnode=45.77.182.60" \
-        "addnode=45.76.223.149" \
-        "addnode=45.77.132.180" \
-        "addnode=173.199.118.148" \
-        "addnode=8.9.4.195" \
-        "addnode=104.156.225.78" ${NODES_LIST} > ${MN_CONF_DIR}/linc.conf
-
+    sudo bash -c "cat > ${MN_CONF_DIR}/linc.conf <<-EOF
+listen=1
+server=1
+daemon=1
+masternode=1
+masternodeprivkey=${MN_PKEY}
+bind=${EXTERNAL_IP}
+externalip=${EXTERNAL_IP}
+rpcbind=127.0.0.${1}
+rpcconnect=127.0.0.${1}
+rpcallowip=127.0.0.1
+rpcuser=${MN_RPCUSER}
+rpcpassword=${MN_RPCPASS}
+maxconnections=256
+addnode=45.77.182.60
+addnode=45.76.223.149
+addnode=45.77.132.180
+addnode=173.199.118.148
+addnode=8.9.4.195
+addnode=104.156.225.78
+${NODES_LIST}
+EOF"
     sudo chown -R ${MN_USER}:${MN_USER} ${MN_CONF_DIR} &>> ${SCRIPT_LOGFILE}
 }
 
@@ -873,5 +878,5 @@ function is_masternode_running() {
 }
 
 output ""
-$(tput clear)
+tput clear
 init
