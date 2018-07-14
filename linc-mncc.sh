@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-### LINC MASTERNODE CONTROL CENTER v0.2
+### LINC MASTERNODE CONTROL CENTER v0.2.1
 ################################################################################
 
 
@@ -270,16 +270,17 @@ function list_options() {
     output "  4. " $(underlined "Restart masternode")
     output "  5. " $(underlined "Masternode status")
     output "  6. " $(underlined "Masternode CLI")
-    output "  7. " $(underlined "Remove masternode")
-    output "  8. " $(underlined "List all masternodes (installed, running)")
-    output "  9. " $(underlined "Generate mastenode.conf content")
-    output " 10. " $(underlined "Remove all masternodes")
-    output " 11. " $(underlined "Update daemon")
-    output " 12. " $(underlined "List IP (all, used, free)")
-    output " 13. " $(underlined "Wipe all data (including masternodes)")
-    output " 14. " $(underlined "Output debug information")
-    output " 15. " $(underlined "Self-update")
-    output " 16. " $(underlined "Exit")
+    output "  7. " $(underlined "Update blockchain data")
+    output "  8. " $(underlined "Remove masternode")
+    output "  9. " $(underlined "List all masternodes (installed, running)")
+    output " 10. " $(underlined "Generate mastenode.conf content")
+    output " 11. " $(underlined "Remove all masternodes")
+    output " 12. " $(underlined "Update daemon")
+    output " 13. " $(underlined "List IP (all, used, free)")
+    output " 14. " $(underlined "Wipe all data (including masternodes)")
+    output " 15. " $(underlined "Output debug information")
+    output " 16. " $(underlined "Self-update")
+    output " 17. " $(underlined "Exit")
 
     output ""
 }
@@ -290,12 +291,12 @@ function process_options() {
 
     option=$(rd "Select option (enter number): ")
 
-    if [[ ! $option =~ ^[0-9]+$ || $option -lt 1 || $option -gt 16 ]]; then
+    if [[ ! $option =~ ^[0-9]+$ || $option -lt 1 || $option -gt 17 ]]; then
         output $(error $(bold "Invalid option!"))
         exit_confirmation
     fi
 
-    if [[ $option -gt 0 && $option -lt 8 ]]; then
+    if [[ $option -gt 0 && $option -lt 9 ]]; then
         MN_SLOT=0
 
         if [[ $option == 1 ]]; then
@@ -419,12 +420,18 @@ function process_options() {
             output ""
             ;;
         7)
+            # update bootstrap
+            stop_masternode ${MN_SLOT}
+            unpack_bootstrap ${MN_SLOT}
+            launch_masternode ${MN_SLOT}
+            ;;
+        8)
             # stop and remove mn
             if get_confirmation "You're going to remove masternode from this slot! Are you sure? [ y/N ] "; then
                 remove_masternode ${MN_SLOT}
             fi
             ;;
-        8)
+        9)
             # list masternodes (all, running, installed)
             output "Masternodes:"
             for SLOT in "${INSTALLED_MNS[@]}"; do
@@ -436,7 +443,7 @@ function process_options() {
             done
             output ""
             ;;
-        9)
+        10)
             # generate masternode.conf
             output "masternode.conf:"
             for SLOT in "${INSTALLED_MNS[@]}"; do
@@ -447,7 +454,7 @@ function process_options() {
             done
             output ""
             ;;
-        10)
+        11)
             # remove all masternodes
             output ""
             if get_confirmation "You're going to remove all masternodes! Are you sure? [ y/N ]";
@@ -460,7 +467,7 @@ function process_options() {
                 output ""
             fi
             ;;
-        11)
+        12)
             # stop running masternodes, reinstall daemon, start masternodes again
             _running_mns=("${RUNNING_MNS[@]}")
             for SLOT in "${_running_mns[@]}"; do
@@ -472,7 +479,7 @@ function process_options() {
                 launch_masternode ${SLOT}
             done
             ;;
-        12)
+        13)
             # list ips
             output "Server IPs:"
             for IP in ${IPS[@]}; do
@@ -490,7 +497,7 @@ function process_options() {
             done
             output ""
             ;;
-        13)
+        14)
             # wipe all data
             output ""
             if get_confirmation "You're going to wipe all masternodes and daemon! Are you sure? [ y/N ]"; 
@@ -513,11 +520,11 @@ function process_options() {
                 output ""
             fi
             ;;
-        14)
+        15)
             # debug information
             output "method unavailable"
             ;;
-        15)
+        16)
             # self-update
             cat > /tmp/linc-mncc-update.sh <<-EOF
 #!/bin/bash
@@ -538,7 +545,7 @@ EOF
             exec /tmp/linc-mncc-update.sh
             _exit 0;
             ;;  
-        16)
+        17)
             _exit 0;
             ;;
     esac
