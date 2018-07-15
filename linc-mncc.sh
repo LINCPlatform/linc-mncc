@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-### LINC MASTERNODE CONTROL CENTER v0.2.1
+### LINC MASTERNODE CONTROL CENTER v0.2.2
 ################################################################################
 
 
@@ -16,7 +16,7 @@ declare -r MN_CONF_BASEDIR=/home/${MN_USER}/.linc
 declare -r DATE_STAMP="$(date +%y-%m-%d-%s)"
 declare -r SCRIPTPATH=$( cd $(dirname ${BASH_SOURCE[0]}) > /dev/null; pwd -P )
 declare -r MASTERPATH="$(dirname "${SCRIPTPATH}")"
-declare -r SCRIPT_VERSION="0.2"
+declare -r SCRIPT_VERSION="0.2.2"
 declare -r SCRIPT_LOGFILE="/tmp/linc_mncc_${DATE_STAMP}.log"
 
 declare -r GIT_URL=https://github.com/LINCPlatform/LINC.git
@@ -168,7 +168,7 @@ function install_packages() {
     output ""
     output "Installing required packages..."
 
-    sudo apt-get -y install wget curl &>> ${SCRIPT_LOGFILE}
+    sudo apt-get -y install wget curl nano htop &>> ${SCRIPT_LOGFILE}
 }
 
 # creates and activates a swapfile since VPS servers often do not have enough RAM for compilation
@@ -271,16 +271,17 @@ function list_options() {
     output "  5. " $(underlined "Masternode status")
     output "  6. " $(underlined "Masternode CLI")
     output "  7. " $(underlined "Update blockchain data")
-    output "  8. " $(underlined "Remove masternode")
-    output "  9. " $(underlined "List all masternodes (installed, running)")
-    output " 10. " $(underlined "Generate mastenode.conf content")
-    output " 11. " $(underlined "Remove all masternodes")
-    output " 12. " $(underlined "Update daemon")
-    output " 13. " $(underlined "List IP (all, used, free)")
-    output " 14. " $(underlined "Wipe all data (including masternodes)")
-    output " 15. " $(underlined "Output debug information")
-    output " 16. " $(underlined "Self-update")
-    output " 17. " $(underlined "Exit")
+    output "  8. " $(underlined "Edit linc.conf file")
+    output "  9. " $(underlined "Remove masternode")
+    output " 10. " $(underlined "List all masternodes (installed, running)")
+    output " 11. " $(underlined "Generate mastenode.conf content")
+    output " 12. " $(underlined "Remove all masternodes")
+    output " 13. " $(underlined "Update daemon")
+    output " 14. " $(underlined "List IP (all, used, free)")
+    output " 15. " $(underlined "Wipe all data (including masternodes)")
+    output " 16. " $(underlined "Output debug information")
+    output " 17. " $(underlined "Self-update")
+    output " 18. " $(underlined "Exit")
 
     output ""
 }
@@ -291,12 +292,12 @@ function process_options() {
 
     option=$(rd "Select option (enter number): ")
 
-    if [[ ! $option =~ ^[0-9]+$ || $option -lt 1 || $option -gt 17 ]]; then
+    if [[ ! $option =~ ^[0-9]+$ || $option -lt 1 || $option -gt 18 ]]; then
         output $(error $(bold "Invalid option!"))
         exit_confirmation
     fi
 
-    if [[ $option -gt 0 && $option -lt 9 ]]; then
+    if [[ $option -gt 0 && $option -lt 10 ]]; then
         MN_SLOT=0
 
         if [[ $option == 1 ]]; then
@@ -426,12 +427,24 @@ function process_options() {
             launch_masternode ${MN_SLOT}
             ;;
         8)
+            # edit linc.conf
+            output "Edit linc.conf..."
+            filename=${MN_CONF_BASEDIR}-mn${SLOT}/linc.conf
+            nano ${filename}
+            output "Finished!"
+            output ""
+            if get_confirmation "Do you want to restart the masternode? [ Y/n ] "; then
+                stop_masternode ${MN_SLOT}
+                launch_masternode ${MN_SLOT}
+            fi
+            ;;
+        9)
             # stop and remove mn
             if get_confirmation "You're going to remove masternode from this slot! Are you sure? [ y/N ] "; then
                 remove_masternode ${MN_SLOT}
             fi
             ;;
-        9)
+        10)
             # list masternodes (all, running, installed)
             output "Masternodes:"
             for SLOT in "${INSTALLED_MNS[@]}"; do
@@ -443,7 +456,7 @@ function process_options() {
             done
             output ""
             ;;
-        10)
+        11)
             # generate masternode.conf
             output "masternode.conf:"
             for SLOT in "${INSTALLED_MNS[@]}"; do
@@ -454,7 +467,7 @@ function process_options() {
             done
             output ""
             ;;
-        11)
+        12)
             # remove all masternodes
             output ""
             if get_confirmation "You're going to remove all masternodes! Are you sure? [ y/N ]";
@@ -467,7 +480,7 @@ function process_options() {
                 output ""
             fi
             ;;
-        12)
+        13)
             # stop running masternodes, reinstall daemon, start masternodes again
             _running_mns=("${RUNNING_MNS[@]}")
             for SLOT in "${_running_mns[@]}"; do
@@ -479,7 +492,7 @@ function process_options() {
                 launch_masternode ${SLOT}
             done
             ;;
-        13)
+        14)
             # list ips
             output "Server IPs:"
             for IP in ${IPS[@]}; do
@@ -497,7 +510,7 @@ function process_options() {
             done
             output ""
             ;;
-        14)
+        15)
             # wipe all data
             output ""
             if get_confirmation "You're going to wipe all masternodes and daemon! Are you sure? [ y/N ]"; 
@@ -520,11 +533,11 @@ function process_options() {
                 output ""
             fi
             ;;
-        15)
+        16)
             # debug information
             output "method unavailable"
             ;;
-        16)
+        17)
             # self-update
             cat > /tmp/linc-mncc-update.sh <<-EOF
 #!/bin/bash
@@ -545,7 +558,7 @@ EOF
             exec /tmp/linc-mncc-update.sh
             _exit 0;
             ;;  
-        17)
+        18)
             _exit 0;
             ;;
     esac
