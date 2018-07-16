@@ -1,6 +1,6 @@
 #!/bin/bash
 ################################################################################
-### LINC MASTERNODE CONTROL CENTER v0.2.2
+### LINC MASTERNODE CONTROL CENTER v0.2.3
 ################################################################################
 
 
@@ -16,16 +16,19 @@ declare -r MN_CONF_BASEDIR=/home/${MN_USER}/.linc
 declare -r DATE_STAMP="$(date +%y-%m-%d-%s)"
 declare -r SCRIPTPATH=$( cd $(dirname ${BASH_SOURCE[0]}) > /dev/null; pwd -P )
 declare -r MASTERPATH="$(dirname "${SCRIPTPATH}")"
-declare -r SCRIPT_VERSION="0.2.2"
+declare -r SCRIPT_VERSION="0.2.3"
 declare -r SCRIPT_LOGFILE="/tmp/linc_mncc_${DATE_STAMP}.log"
 
 declare -r GIT_URL=https://github.com/LINCPlatform/LINC.git
-declare -r RELEASE_VERSION="master"
+declare -r RELEASE_VERSION_SRC="master"
 declare -r CODE_DIR="LINC"
 declare -r MAX_SLOTS=255
 
-declare -r BINARIES_ARCHIVE_NAME=LINC-1.0.0-linux64.tar.gz
-declare -r BINARIES_ARCHIVE_URL=https://linc.site/releases/${BINARIES_ARCHIVE_NAME}
+declare -r RELEASE_VERSION="1.0.1"
+declare -r RELEASE_BUILD=1
+
+declare -r BINARIES_ARCHIVE_NAME="LINC-${RELEASE_VERSION}-linux64.tar.gz"
+declare -r BINARIES_ARCHIVE_URL="https://github.com/LINCPlatform/LINC/releases/download/${RELEASE_VERSION}.${RELEASE_BUILD}/LINC-${RELEASE_VERSION}-linux64.tar.gz"
 
 declare -r SYSTEMD_CONF=/etc/systemd/system
 declare -r SERVICE_EXEC=/usr/sbin/service
@@ -488,6 +491,9 @@ function process_options() {
             done
             sudo killall -9 lincd                                 &>> ${SCRIPT_LOGFILE}
             install_daemon
+            updated_version=`lincd -version | grep version`
+            output "Updated LINC version: ${updated_version}"
+            output ""
             for SLOT in "${_running_mns[@]}"; do
                 launch_masternode ${SLOT}
             done
@@ -651,11 +657,11 @@ function install_daemon() {
         compile
     else
         tar -xvf ${BINARIES_ARCHIVE_NAME} &>> ${SCRIPT_LOGFILE}
-        if [ ! -f ${SCRIPTPATH}/linc-1.0.0/bin/lincd ]; then
+        if [ ! -f ${SCRIPTPATH}/linc-${RELEASE_VERSION}/bin/lincd ]; then
             output $(error "Corrupted archive. Trying to compile from source code...")
             compile
         else    
-            cd linc-1.0.0/bin &>> ${SCRIPT_LOGFILE}
+            cd linc-${RELEASE_VERSION}/bin &>> ${SCRIPT_LOGFILE}
             ./lincd -version &>> ${SCRIPT_LOGFILE}
             if [ $? -ne 0 ]; then
                 output $(error "Compiled binaries launch failed. Trying to compile from source code...")
@@ -707,8 +713,8 @@ function compile() {
         git clone ${GIT_URL} .                          &>> ${SCRIPT_LOGFILE}
     fi
 
-    output "Checking out release version: ${RELEASE_VERSION}"
-    git checkout ${RELEASE_VERSION}                     &>> ${SCRIPT_LOGFILE}
+    output "Checking out release version: ${RELEASE_VERSION_SRC}"
+    git checkout ${RELEASE_VERSION_SRC}                     &>> ${SCRIPT_LOGFILE}
 
     chmod u+x share/genbuild.sh &>> ${SCRIPT_LOGFILE}
     chmod u+x src/leveldb/build_detect_platform &>> ${SCRIPT_LOGFILE}
